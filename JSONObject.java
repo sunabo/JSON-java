@@ -165,6 +165,11 @@ public class JSONObject {
     public static final Object NULL = new Null();
 
     /**
+     * It is a formater to specify the type of tag
+     */
+    private XMLFormater xmlFormater = null;
+
+    /**
      * Construct an empty JSONObject.
      */
     public JSONObject() {
@@ -174,6 +179,14 @@ public class JSONObject {
         // implementations to rearrange their items for a faster element 
         // retrieval based on associative access.
         // Therefore, an implementation mustn't rely on the order of the item.
+        this.map = new HashMap<String, Object>();
+    }
+
+    /**
+     * Construct an empty JSONObject with formater.
+     */
+    public JSONObject(XMLFormater formater) {
+        this.xmlFormater = formater;
         this.map = new HashMap<String, Object>();
     }
 
@@ -478,15 +491,32 @@ public class JSONObject {
         testValidity(value);
         Object object = this.opt(key);
         if (object == null) {
-            this.put(key,
-                    value instanceof JSONArray ? new JSONArray().put(value)
-                            : value);
+            this.put(key, createJSONObject(key, value));
         } else if (object instanceof JSONArray) {
             ((JSONArray) object).put(value);
         } else {
             this.put(key, new JSONArray().put(object).put(value));
         }
         return this;
+    }
+
+    /**
+     * if the tag is specified as {@TAG_TYPE_REPEAT_IN_LIST}, then create a JSONArray to store the value.
+     *
+     * @param key
+     * @param value
+     * @return
+     */
+    private Object createJSONObject(String key, Object value){
+        if(xmlFormater != null && xmlFormater.getRepeatTagNameMap() != null && xmlFormater.getRepeatTagNameMap().containsKey(key)){
+            return new JSONArray().put(value);
+        }
+
+        if(value instanceof JSONArray){
+            return new JSONArray().put(value);
+        }else{
+            return value;
+        }
     }
 
     /**

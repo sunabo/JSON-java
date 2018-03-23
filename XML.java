@@ -238,10 +238,11 @@ public class XML {
      *            The JSONObject that will include the new material.
      * @param name
      *            The tag name.
+     * @param formater
      * @return true if the close tag is processed.
      * @throws JSONException
      */
-    private static boolean parse(XMLTokener x, JSONObject context, String name, boolean keepStrings)
+    private static boolean parse(XMLTokener x, JSONObject context, String name, XMLFormater formater, boolean keepStrings)
             throws JSONException {
         char c;
         int i;
@@ -326,7 +327,7 @@ public class XML {
         } else {
             tagName = (String) token;
             token = null;
-            jsonobject = new JSONObject();
+            jsonobject = new JSONObject(formater);
             for (;;) {
                 if (token == null) {
                     token = x.nextToken();
@@ -378,7 +379,7 @@ public class XML {
 
                         } else if (token == LT) {
                             // Nested element
-                            if (parse(x, jsonobject, tagName,keepStrings)) {
+                            if (parse(x, jsonobject, tagName, formater, keepStrings)) {
                                 if (jsonobject.length() == 0) {
                                     context.accumulate(tagName, "");
                                 } else if (jsonobject.length() == 1
@@ -488,7 +489,7 @@ public class XML {
      * @throws JSONException Thrown if there is an errors while parsing the string
      */
     public static JSONObject toJSONObject(Reader reader) throws JSONException {
-        return toJSONObject(reader, false);
+        return toJSONObject(reader, null, false);
     }
 
     /**
@@ -506,18 +507,19 @@ public class XML {
      * numbers but will instead be the exact value as seen in the XML document.
      *
      * @param reader The XML source reader.
+     * @param set a XML formater.
      * @param keepStrings If true, then values will not be coerced into boolean
      *  or numeric values and will instead be left as strings
      * @return A JSONObject containing the structured data from the XML string.
      * @throws JSONException Thrown if there is an errors while parsing the string
      */
-    public static JSONObject toJSONObject(Reader reader, boolean keepStrings) throws JSONException {
-        JSONObject jo = new JSONObject();
+    public static JSONObject toJSONObject(Reader reader, XMLFormater formater, boolean keepStrings) throws JSONException {
+        JSONObject jo = new JSONObject(formater);
         XMLTokener x = new XMLTokener(reader);
         while (x.more()) {
             x.skipPast("<");
             if(x.more()) {
-                parse(x, jo, null, keepStrings);
+                parse(x, jo, null, formater, keepStrings);
             }
         }
         return jo;
@@ -545,7 +547,31 @@ public class XML {
      * @throws JSONException Thrown if there is an errors while parsing the string
      */
     public static JSONObject toJSONObject(String string, boolean keepStrings) throws JSONException {
-        return toJSONObject(new StringReader(string), keepStrings);
+        return toJSONObject(new StringReader(string), null, keepStrings);
+    }
+
+    /**
+     * Convert a well-formed (but not necessarily valid) XML string into a
+     * JSONObject. Some information may be lost in this transformation because
+     * JSON is a data format and XML is a document format. XML uses elements,
+     * attributes, and content text, while JSON uses unordered collections of
+     * name/value pairs and arrays of values. JSON does not does not like to
+     * distinguish between elements and attributes. Sequences of similar
+     * elements are represented as JSONArrays. Content text may be placed in a
+     * "content" member. Comments, prologs, DTDs, and <code>&lt;[ [ ]]></code>
+     * are ignored.
+     * 
+     * All values are converted as strings, for 1, 01, 29.0 will not be coerced to
+     * numbers but will instead be the exact value as seen in the XML document.
+     * 
+     * @param string
+     *            The source string.
+     * @param set a XML formater.
+     * @return A JSONObject containing the structured data from the XML string.
+     * @throws JSONException Thrown if there is an errors while parsing the string
+     */
+    public static JSONObject toJSONObject(String string, XMLFormater formater) throws JSONException {
+        return toJSONObject(new StringReader(string), formater, false);
     }
 
     /**
